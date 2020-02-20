@@ -1,0 +1,24 @@
+---------------Lambda = 0.100000.---------------
+Experiment 1, ACC: 0.8374.
+Experiment 2, ACC: 0.8315.
+Experiment 3, ACC: 0.7982.
+Experiment 4, ACC: 0.8417.
+Experiment 5, ACC: 0.8333.
+---------------Lambda = 0.200000.---------------
+Experiment 1, ACC: 0.8066.
+Experiment 2, ACC: 0.7724.
+Experiment 3, ACC: 0.8100.
+Experiment 4, ACC: 0.8246.
+Experiment 5, ACC: 0.8259.
+---------------Lambda = 0.300000.---------------
+Experiment 1, ACC: 0.7621.
+Experiment 2, ACC: 0.8225.
+Experiment 3, ACC: 0.8340.
+Experiment 4, ACC: 0.8069.
+Experiment 5, ACC: 0.8072.
+---------------Lambda = 0.400000.---------------
+Experiment 1, ACC: 0.8725.
+Experiment 2, ACC: 0.7845.
+Experiment 3, ACC: 0.8327.
+Experiment 4, ACC: 0.8053.
+Experiment 5, ACC: 0.8560.
