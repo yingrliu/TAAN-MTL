@@ -1,4 +1,4 @@
-# KAAN
+# Task Adaptive Activation Network
 This repository contains the Pytorch implementation of my paper:
 > Y. Liu, X. Yang, D. Xie, X. Wang, L. Shen, H. Huang, N. Balasubramanian,
 "_Adaptive Activation Network and Functional Regularization for Efficient and Flexible Deep Multi-Task Learning._" 
