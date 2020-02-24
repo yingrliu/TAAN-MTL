@@ -7,7 +7,9 @@ in <ins>Proceedings of the 34th AAAI Conference on Artificial Intelligence (AAAI
 In this paper, we are going to automatically learn the optimal splitting of network architecture for deep Multi-Task
 Learning in a scalable way.
 
-<img src="Documents/architecture.png" width="900px" alt="Architecture">
+<p align="center">
+<img src="Documents/architecture.png" width="600px" alt="Architecture">
+</p>
 
 ## Set Up
 ### Prerequisites
