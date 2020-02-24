@@ -16,7 +16,7 @@ The Pytorch data loader is implemented in `torch_loader.py` as `MultiTask_Datalo
 change the saveto path in `data.py` in pre-processing, please also
 change the `data_path` in `torch_loader.py`.
 
-## Examples command lines to run the code
+## Examples command lines to train models
  _Note: all the models will have three layers._
 - Single-Task:
 ```shell
@@ -73,3 +73,32 @@ python  Trainer.py --batch_size 256 --max_epoch 10 --hidden_feature 1024 --lr 0.
     ```
 
 - TAAN:
+    - TAAN w/o regularization
+    ```shell
+    python  Trainer.py --batch_size 256 --max_epoch 10 --hidden_feature 1024 --lr 0.0001 \
+    --model TAAN --basis 64 --saveto results/TAAN
+    ```
+    - TAAN + TraceNorm
+    ```shell
+    python  Trainer.py --batch_size 256 --max_epoch 10 --hidden_feature 1024 --lr 0.0001 \
+    --model TAAN --basis 64 --regularize tracenorm --taan_constant 0.1 --saveto results/TAAN_TN
+    ```
+    - TAAN + Cosine
+    ```shell
+    python  Trainer.py --batch_size 256 --max_epoch 10 --hidden_feature 1024 --lr 0.0001 \
+    --model TAAN --basis 64 --regularize cosine --taan_constant 0.1 --saveto results/TAAN_TN
+    ```
+    
+    - TAAN + Distance
+    ```shell
+    python  Trainer.py --batch_size 256 --max_epoch 10 --hidden_feature 1024 --lr 0.0001 \
+    --model TAAN --basis 64 --regularize distance --taan_constant 0.1 --saveto results/TAAN_TN
+    ```
+    
+## Visualization
+
+After training TAAN, you can visualize the distance between task-specific activation functions on each hidden layers by 
+`Visualizer.py`. A example command line is given as
+```shell
+    python  Visualizer.py --hidden_feature 1024 --basis 64 --path results/TAAN
+```

@@ -191,14 +191,14 @@ class DMTRL(nn.Module):
 
 
 class TAAN(nn.Module):
-    def __init__(self, hidden_feature, task_classes, basis=16, c=0.1, regularization=None, RBF=0):
+    def __init__(self, hidden_feature, task_classes, basis=16, c=0.1, regularization=None):
         super(TAAN, self).__init__()
         self.layer1 = TAL_Linear(1152, hidden_feature, basis=basis, tasks=len(task_classes),
-                                 regularize=regularization, RBF=RBF)
+                                 regularize=regularization)
         self.layer2 = TAL_Linear(hidden_feature, hidden_feature, basis=basis, tasks=len(task_classes),
-                                 regularize=regularization, RBF=RBF)
+                                 regularize=regularization)
         self.layer3 = TAL_Linear(hidden_feature, hidden_feature, basis=basis, tasks=len(task_classes),
-                                 regularize=regularization, RBF=RBF)
+                                 regularize=regularization)
         self.nets = []
         self.num_classes = task_classes
         for d, num_classes in enumerate(task_classes):
@@ -210,7 +210,6 @@ class TAAN(nn.Module):
         self.loss = nn.BCEWithLogitsLoss()
         self.c = c
         self.regularization = regularization
-        self.RBF = RBF
         return
 
     def forward(self, feature, taskID):
