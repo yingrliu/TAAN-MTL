@@ -6,38 +6,35 @@ This file contains the implementation of TAAN by pytorch.
 
 
 import torch, os
-import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
-from TAL_Layers import TorchDenseTAL_APL, TorchConvTAL_APL
-from TAL_Layers import Loss2Euclidean, LossCosine, LossTraceNorm
-from dataTools import DataLayer, fit
+from Layers.TAL_pytorch import *
 
-class_annotations = "../data/Omniglot/class_annotation.txt"
+MAIN_DIR = "data"
+class_annotations = os.path.join(MAIN_DIR, 'class_annotation.txt')
 
 class TAAN(nn.Module):
-    def __init__(self, Lambda, VMTL='NoVMTL', num_tasks=50, dimBasis=16, lr=0.01):
+    def __init__(self, tasks=50, basis=16, lr=0.01, c=0.1, regularize=None):
         super(TAAN, self).__init__()
-        self.conv1 = TorchConvTAL_APL(in_channels=1, out_channels=6, kernel_size=3, dimBasis=dimBasis,
-                                      numTask=num_tasks, allTask=False).cuda()
-        self.conv2 = TorchConvTAL_APL(in_channels=6, out_channels=12, kernel_size=3, dimBasis=dimBasis,
-                                      numTask=num_tasks, allTask=False).cuda()
-        self.conv3 = TorchConvTAL_APL(in_channels=12, out_channels=24, kernel_size=3, dimBasis=dimBasis,
-                                      numTask=num_tasks, allTask=False).cuda()
-        self.conv4 = TorchConvTAL_APL(in_channels=24, out_channels=64, kernel_size=3, dimBasis=dimBasis,
-                                      numTask=num_tasks, allTask=False).cuda()
+        self.conv1 = TAL_Conv2d(in_channels=1, out_channels=6, kernel_size=3, basis=basis,
+                                      tasks=tasks, regularize=regularize).cuda()
+        self.conv2 = TAL_Conv2d(in_channels=6, out_channels=12, kernel_size=3, basis=basis,
+                                      tasks=tasks, regularize=regularize).cuda()
+        self.conv3 = TAL_Conv2d(in_channels=12, out_channels=24, kernel_size=3, basis=basis,
+                                      tasks=tasks, regularize=regularize).cuda()
+        self.conv4 = TAL_Conv2d(in_channels=24, out_channels=64, kernel_size=3, basis=basis,
+                                      tasks=tasks, regularize=regularize).cuda()
         self.pool1 = nn.MaxPool2d(2, 2).cuda()
         self.pool2 = nn.MaxPool2d(2, 2).cuda()
         self.pool3 = nn.MaxPool2d(2, 2).cuda()
         self.pool4 = nn.MaxPool2d(2, 2).cuda()
-        self.fc1 = TorchDenseTAL_APL(dimIn=64 * 4 * 4, dimOut=512, dimBasis=dimBasis, numTask=50, allTask=False,
-                                     DropOut=False).cuda()
+        self.fc1 = TAL_Linear(in_features=64 * 4 * 4, out_features=512, basis=basis, tasks=tasks,
+                              regularize=regularize).cuda()
         self.alphas, self.b = [self.conv1.alpha, self.conv2.alpha, self.conv3.alpha, self.conv4.alpha, self.fc1.alpha], \
-                              [self.conv1.b, self.conv2.b, self.conv3.b, self.conv4.b, self.fc1.b]
+                              [self.conv1.basis, self.conv2.basis, self.conv3.basis, self.conv4.basis, self.fc1.basis]
         #
         if not os.path.exists(class_annotations):
-            raise ValueError("Please run the convert_path in dataTools.py first to set up the experiment.")
-        #
+            raise ValueError("Please run the convert_path() in dataTools.py first to set up the experiment.")
+        # set output layers.
         class_per_language = open(class_annotations, 'r').readlines()
         self.class_informations = []
         self.OutputLayers = []
@@ -47,7 +44,7 @@ class TAAN(nn.Module):
             layer = nn.Linear(512, num_classes).cuda()
             layer.weight.data.normal_(0, 0.01)
             layer.bias.data.fill_(0.0)
-            setattr(self, "TOutput_%s" % language, layer)
+            setattr(self, "Output_%s" % language, layer)
             self.class_informations.append((language, num_classes))
             self.OutputLayers.append(layer)
         # save the parameters.
@@ -56,25 +53,24 @@ class TAAN(nn.Module):
         parameter_dict += [{"params": self.conv3.parameters(), "lr": lr}]
         parameter_dict += [{"params": self.conv4.parameters(), "lr": lr}]
         parameter_dict += [{"params": self.fc1.parameters(), "lr": lr}]
-        parameter_dict += [{"params": self.OutputLayers[i].parameters(), "lr": 50 * lr} for i in range(num_tasks)]
+        parameter_dict += [{"params": self.OutputLayers[i].parameters(), "lr": 50 * lr} for i in range(tasks)]
         self.optimizer = optim.Adam(parameter_dict, lr=lr, weight_decay=0.005)
         self.criterion = nn.CrossEntropyLoss()
-        """VMTL Losses"""
-        self.Lambda = Lambda
-        self.VMTL = VMTL
+        """Regularization coefficent."""
+        self.c = c
         """-----------"""
         self.params = parameter_dict
-        self.num_tasks = num_tasks
+        self.num_tasks = tasks
         self.iter_num = 0
         return
 
     def forward(self, input, taskID):
-        conv1 = self.pool1(self.conv1([input, taskID])[0])
-        conv2 = self.pool2(self.conv2([conv1, taskID])[0])
-        conv3 = self.pool3(self.conv3([conv2, taskID])[0])
-        conv4 = self.pool4(self.conv4([conv3, taskID])[0])
+        conv1 = self.pool1(self.conv1(input, taskID))
+        conv2 = self.pool2(self.conv2(conv1, taskID))
+        conv3 = self.pool3(self.conv3(conv2, taskID))
+        conv4 = self.pool4(self.conv4(conv3, taskID))
         x = conv4.view(-1, 64 * 4 * 4)
-        fc1 = self.fc1([x, taskID])[0]
+        fc1 = self.fc1(x, taskID)
         predictY = self.OutputLayers[taskID](fc1)
         Y = torch.argmax(predictY, dim=-1)
         return Y, predictY, conv1, conv2, conv3, conv4, fc1
@@ -103,17 +99,12 @@ class TAAN(nn.Module):
         losses = [self.criterion(predictY[i], batchY[i]) for i in range(self.num_tasks)]
         classifier_loss = sum(losses) / self.num_tasks
         total_loss = classifier_loss
-        """VMTL Losses"""
-        if self.VMTL != 'NoVMTL' and self.Lambda > 0:
-            if self.VMTL == 'LowRank':
-                regularizations = [LossTraceNorm(self.alphas[i]) for i in range(len(self.alphas))]
-            elif self.VMTL == 'Euclidean':
-                regularizations = [Loss2Euclidean(self.alphas[i], self.b[i])[0] for i in range(len(self.alphas))]
-            elif self.VMTL == 'Cosine':
-                regularizations = [LossCosine(self.alphas[i], self.b[i])[0] for i in range(len(self.alphas))]
-            else:
-                raise ValueError("VMTL should be LowRank/Euclidean/Cosine!")
-            total_loss = total_loss + self.Lambda * sum(regularizations)
+        """Regularization"""
+        total_loss += self.conv1.regularization(self.c)
+        total_loss += self.conv2.regularization(self.c)
+        total_loss += self.conv3.regularization(self.c)
+        total_loss += self.conv4.regularization(self.c)
+        total_loss += self.fc1.regularization(self.c)
         """-----------"""
         total_loss.backward()
         self.optimizer.step()
@@ -140,10 +131,3 @@ class TAAN(nn.Module):
         self.load_state_dict(model_dict)
         self.eval()
         return
-
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
-
-if __name__ == "__main__":
-    model = TAAN(Lambda=0.1, VMTL='Cosine', dimBasis=32, lr=1e-5)
-    # model.loadModel("Model/model_params.pt")
-    fit(model, batchSize=5, testInterval=100, num_iter=15000, earlyStop=100, saveto=None)

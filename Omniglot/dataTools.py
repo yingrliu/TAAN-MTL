@@ -6,11 +6,9 @@ This file contains the tools to load data.
 
 import torch, os, random
 from torchvision import transforms
-import numpy as np
 from PIL import Image
-import matplotlib.pyplot as plt
 
-MAIN_DIR = "../data/Omniglot"
+MAIN_DIR = "data"
 
 TRANSFORM = transforms.Compose(
     [
@@ -87,7 +85,7 @@ class ImageList(torch.utils.data.Dataset):
         return len(self.image_list)
 
 """----------------------------------------------------------------------------------------------------------------
-ImageList: a full data loader to load the batch of images of all languages to train models.
+DataLayer: a full data loader to load the batch of images of all languages to train models.
 :type: Class
 ----------------------------------------------------------------------------------------------------------------"""
 class DataLayer(object):
@@ -111,8 +109,8 @@ class DataLayer(object):
                 torch.utils.data.DataLoader(test_dset, batch_size=batchSize, shuffle=True, num_workers=4))
         return
 
+# todo: Getting OSError: [Errno 24] Too many open files. Not sure why.
 def ComputeACC(model, testSet):
-    # todo:
     model.eval()
     iter_test = [iter(loader) for loader in testSet]
     start_test = True
@@ -133,7 +131,10 @@ def ComputeACC(model, testSet):
     taskAcc = torch.sum(torch.squeeze(all_output).float() == all_label).float() / float(all_label.size()[0])
     return taskAcc
 
-# Todo
+"""----------------------------------------------------------------------------------------------------------------
+fit: fit the model.
+:type: function
+----------------------------------------------------------------------------------------------------------------"""
 def fit(model, batchSize, testInterval=100, num_iter=5000, earlyStop=100, saveto=None):
     dataset = DataLayer(batchSize)
     trainSet = dataset.train_loader
@@ -172,13 +173,3 @@ def fit(model, batchSize, testInterval=100, num_iter=5000, earlyStop=100, saveto
             dataY.append(data[1].cuda())
         model.train_step(dataX, dataY)
     return best_acc
-
-if __name__ == '__main__':
-    """unittest for convert_paths()"""
-    # convert_paths()
-    """unittest for ImageList"""
-    # images = ImageList(os.path.join('../data/Omniglot/ULOG_train.txt'))
-    # data, label = images[1]
-    """unittest for DataLayer"""
-    #DataLayer(batchSize=1)
-    #print()
